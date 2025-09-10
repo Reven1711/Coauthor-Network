@@ -46,7 +46,7 @@ cols = ["node","citations","hindex","gindex","title","cs","bio","soc"]
 df = pd.read_csv(GS_INFO_PATH, sep=" ", names=cols)
 hindex_dict = dict(zip(df["node"].astype(str), df["hindex"]))  # ensure string IDs
 
-# --- Step 5: Compute community max h-index ---
+# --- Step 5: Compute community h-index stats ---
 community_hindexes = {}
 print("Computing community h-index distribution...")
 for node, comm_id in tqdm(partition.items(), total=len(partition)):
@@ -57,23 +57,45 @@ for node, comm_id in tqdm(partition.items(), total=len(partition)):
         community_hindexes[comm_id] = []
     community_hindexes[comm_id].append(h)
 
-# Get max h-index per community
-community_max_h = [max(vals) for vals in community_hindexes.values() if vals]
+# Build DataFrames
+rows_summary = []
+rows_distribution = []
+for comm_id, hlist in community_hindexes.items():
+    if not hlist:
+        continue
+    rows_summary.append({
+        "community_id": comm_id,
+        "community_size": len(hlist),
+        "max_hindex": max(hlist)
+    })
+    rows_distribution.append({
+        "community_id": comm_id,
+        "hindex_values": hlist
+    })
 
-# Sort communities by ID for consistent x-axis
-community_ids = sorted(community_hindexes.keys())
-max_h_values = [max(community_hindexes[c]) for c in community_ids if community_hindexes[c]]
+df_summary = pd.DataFrame(rows_summary).sort_values("community_id")
+df_distribution = pd.DataFrame(rows_distribution).sort_values("community_id")
+
+# Save CSVs
+os.makedirs(RESULTS_DIR, exist_ok=True)
+summary_path = os.path.join(RESULTS_DIR, "community_max_hindex.csv")
+dist_path = os.path.join(RESULTS_DIR, "community_hindex_distribution.csv")
+df_summary.to_csv(summary_path, index=False)
+df_distribution.to_csv(dist_path, index=False)
+
+print(f"✅ Saved: {summary_path}")
+print(f"✅ Saved: {dist_path}")
 
 # --- Step 6: Scatter/Line Plot ---
 plt.figure(figsize=(10,6))
-plt.plot(range(1, len(max_h_values)+1), max_h_values, marker="o", linestyle="-", color="teal")
-plt.xlabel("Community Index")
+plt.plot(df_summary["community_id"], df_summary["max_hindex"],
+         marker="o", linestyle="-", color="teal")
+plt.xlabel("Community ID")
 plt.ylabel("Max h-index")
 plt.title("Plot 9: Max h-index per Community")
 plt.grid(True, linestyle="--", alpha=0.6)
 
 # Save plot
-os.makedirs(RESULTS_DIR, exist_ok=True)
 plt.savefig(os.path.join(RESULTS_DIR, "plot9_max_hindex_per_community.png"), dpi=300)
 plt.close()
 
