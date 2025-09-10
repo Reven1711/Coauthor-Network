@@ -1,0 +1,3 @@
+Neighbors' avg h-index > author's h-index: 215634
+Neighbors' avg h-index < author's h-index: 52583
+Neighbors' avg h-index = author's h-index: 8857
